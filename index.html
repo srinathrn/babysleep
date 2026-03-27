@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1D9E75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Baby Sleep">
+<title>Baby Sleep Helper</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --green: #1D9E75;
+    --green-dark: #0F6E56;
+    --green-light: #E1F5EE;
+    --green-text: #085041;
+    --bg: #f9f9f7;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --text2: #555;
+    --text3: #888;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 14px;
+    --radius-sm: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111;
+      --surface: #1c1c1e;
+      --text: #f0f0f0;
+      --text2: #aaa;
+      --text3: #666;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+      --green-light: #0a2e22;
+      --green-text: #5DCAA5;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  
+  /* Header */
+  .header { background: var(--green); padding: 52px 20px 20px; color: white; }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+  
+  /* Tabs */
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  .tab { flex: 1; padding: 13px 4px; font-size: 13px; font-weight: 500; color: var(--text3); border: none; background: none; cursor: pointer; border-bottom: 2.5px solid transparent; transition: all 0.15s; }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); }
+  
+  /* Sections */
+  .section { display: none; padding: 16px; }
+  .section.active { display: block; }
+  
+  /* Sound grid */
+  .sound-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .sound-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
+  .sound-card:active { transform: scale(0.97); }
+  .sound-card.playing { border-color: var(--green); background: var(--green-light); }
+  .sound-icon { font-size: 24px; margin-bottom: 6px; }
+  .sound-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .sound-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .sound-badge { display: inline-block; font-size: 10px; font-weight: 600; color: var(--green-text); background: var(--green-light); padding: 2px 7px; border-radius: 20px; margin-top: 5px; }
+  
+  /* Volume */
+  .vol-section { background: var(--surface); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+  .vol-label { font-size: 13px; color: var(--text2); margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .vol-label span { font-weight: 600; color: var(--text); }
+  input[type=range] { width: 100%; accent-color: var(--green); height: 4px; }
+  .stop-btn { width: 100%; padding: 13px; border-radius: var(--radius-sm); border: 1.5px solid var(--border2); background: transparent; font-size: 14px; color: var(--text2); cursor: pointer; font-weight: 500; }
+  .stop-btn:active { background: var(--border); }
+
+  /* Timer */
+  .timer-card { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .timer-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .timer-big { font-size: 38px; font-weight: 300; color: var(--text); font-variant-numeric: tabular-nums; }
+  .timer-label { font-size: 12px; color: var(--text3); }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 1s linear; }
+  
+  /* Steps */
+  .steps-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .step-item { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px; display: flex; gap: 10px; align-items: flex-start; transition: all 0.2s; }
+  .step-item.active { border-color: var(--green); background: var(--green-light); }
+  .step-item.done { opacity: 0.45; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text2); flex-shrink: 0; }
+  .step-item.active .step-num { background: var(--green); color: white; }
+  .step-info { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .step-detail { font-size: 12px; color: var(--text2); margin-top: 3px; line-height: 1.5; }
+  .step-dur { font-size: 11px; color: var(--text3); flex-shrink: 0; padding-top: 2px; }
+  
+  /* Buttons */
+  .btn-row { display: flex; gap: 8px; }
+  .btn-green { flex: 2; padding: 14px; border-radius: var(--radius-sm); border: none; background: var(--green); color: white; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn-green:active { transform: scale(0.97); background: var(--green-dark); }
+  .btn-outline { flex: 1; padding: 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--border2); background: transparent; color: var(--text2); font-size: 15px; font-weight: 500; cursor: pointer; }
+  .btn-outline:active { background: var(--border); }
+
+  /* Tips */
+  .tips-list { display: flex; flex-direction: column; gap: 10px; }
+  .tip-card { background: var(--surface); border-radius: var(--radius); padding: 14px; border: 1px solid var(--border); }
+  .tip-tag { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 20px; margin-bottom: 7px; }
+  .tag-now { background: #FAEEDA; color: #633806; }
+  .tag-hold { background: #E1F5EE; color: #085041; }
+  .tag-sound { background: #EEEDFE; color: #3C3489; }
+  .tag-feed { background: #FAECE7; color: #712B13; }
+  .tag-env { background: #E6F1FB; color: #0C447C; }
+  .tag-warn { background: #FCEBEB; color: #791F1F; }
+  .tip-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+  .tip-body { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+  /* Pulse animation for playing */
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .playing .sound-badge { animation: pulse 1.5s infinite; }
+
+  /* Safe area */
+  .section { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Baby Sleep Helper</h1>
+  <p>3–6 months • Sounds, routine & tips</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('sounds',this)">Sounds</button>
+  <button class="tab" onclick="showTab('routine',this)">Routine</button>
+  <button class="tab" onclick="showTab('tips',this)">Tips</button>
+</div>
+
+<!-- SOUNDS -->
+<div class="section active" id="tab-sounds">
+  <div class="sound-grid">
+    <div class="sound-card" id="card-whitenoise" onclick="playSound('whitenoise')">
+      <div class="sound-icon">🌫️</div>
+      <div class="sound-name">White noise</div>
+      <div class="sound-desc">Steady broadband hiss</div>
+      <div class="sound-badge" id="badge-whitenoise" style="display:none">Playing</div>
+    </div>
+    <div class="sound-card" id="card-shush" onclick="playSound('shush')">
+      <div class="sound-icon">💨</div>
+      <div class="sound-name">Shushing</div>
+      <div class="sound-desc">Rhythmic womb-like</div>
+      <div class="sound-badge" id="badge-shush" style="display:none">Playing</div>
+    </div>
+    <div class="sound-card" id="card-heartbeat" onclick="playSound('heartbeat')">
+      <div class="sound-icon">❤️</div>
+      <div class="sound-name">Heartbeat</div>
+      <div class="sound-desc">Womb + heartbeat</div>
+      <div class="sound-badge" id="badge-heartbeat" style="display:none">Playing</div>
+    </div>
+    <div class="sound-card" id="card-rain" onclick="playSound('rain')">
+      <div class="sound-icon">🌧️</div>
+      <div class="sound-name">Soft rain</div>
+      <div class="sound-desc">Gentle rainfall</div>
+      <div class="sound-badge" id="badge-rain" style="display:none">Playing</div>
+    </div>
+    <div class="sound-card" id="card-lullaby" onclick="playSound('lullaby')">
+      <div class="sound-icon">🎵</div>
+      <div class="sound-name">Lullaby</div>
+      <div class="sound-desc">Soft slow melody</div>
+      <div class="sound-badge" id="badge-lullaby" style="display:none">Playing</div>
+    </div>
+    <div class="sound-card" id="card-womb" onclick="playSound('womb')">
+      <div class="sound-icon">🌊</div>
+      <div class="sound-name">Womb sounds</div>
+      <div class="sound-desc">Whooshing in-utero</div>
+      <div class="sound-badge" id="badge-womb" style="display:none">Playing</div>
+    </div>
+  </div>
+
+  <div class="vol-section">
+    <div class="vol-label">Volume <span id="vol-val">60%</span></div>
+    <input type="range" min="0" max="100" value="60" step="1" oninput="setVolume(this.value)">
+  </div>
+  <button class="stop-btn" onclick="stopAll()">Stop all sounds</button>
+</div>
+
+<!-- ROUTINE -->
+<div class="section" id="tab-routine">
+  <div class="timer-card">
+    <div class="timer-top">
+      <div>
+        <div class="timer-label" id="step-label">Step 1 of 6</div>
+        <div class="timer-big" id="timer-display">25:00</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="timer-label">Total remaining</div>
+        <div style="font-size:20px;font-weight:500;color:var(--text2);font-variant-numeric:tabular-nums;" id="total-display">25:00</div>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="steps-list" id="steps-list"></div>
+
+  <div class="btn-row">
+    <button class="btn-green" id="routine-btn" onclick="toggleRoutine()">Start routine</button>
+    <button class="btn-outline" onclick="resetRoutine()">Reset</button>
+  </div>
+</div>
+
+<!-- TIPS -->
+<div class="section" id="tab-tips">
+  <div class="tips-list">
+    <div class="tip-card">
+      <span class="tip-tag tag-now">Do right now</span>
+      <div class="tip-title">The 5 S's — in order</div>
+      <div class="tip-body">Swaddle snugly → Side/stomach hold → Shush loudly near ear → Swing with small rapid jiggles → Suck (pacifier or feed). Each step amplifies the next one.</div>
+    </div>
+    <div class="tip-card">
+      <span class="tip-tag tag-hold">Hold position</span>
+      <div class="tip-title">Football hold facing down</div>
+      <div class="tip-body">Lay baby face-down along your forearm, tummy on your arm, head near your elbow. Your palm gently supports the belly. Gentle pressure relieves gas and colic almost instantly.</div>
+    </div>
+    <div class="tip-card">
+      <span class="tip-tag tag-sound">Sound tip</span>
+      <div class="tip-title">Sound must match crying volume</div>
+      <div class="tip-body">The womb is ~85–95 dB — louder than a vacuum cleaner. Your shushing or white noise should match baby's cry volume to compete. Gradually lower it once baby is calm.</div>
+    </div>
+    <div class="tip-card">
+      <span class="tip-tag tag-hold">Movement</span>
+      <div class="tip-title">Fast tiny jiggles, not slow rocking</div>
+      <div class="tip-body">At 3–6 months, babies respond better to small rapid jiggles (1–2 inches, ~1 per second) than slow rocking. Always keep the head supported. Never shake vigorously.</div>
+    </div>
+    <div class="tip-card">
+      <span class="tip-tag tag-feed">Feeding check</span>
+      <div class="tip-title">Rule out hunger and gas first</div>
+      <div class="tip-body">At 3–6 months, feedings are every 3–4 hours. If last feed was 2+ hours ago, try feeding first. For gas relief: bicycle the legs, or massage tummy gently in clockwise circles.</div>
+    </div>
+    <div class="tip-card">
+      <span class="tip-tag tag-env">Environment</span>
+      <div class="tip-title">Dark, warm, and no stimulation</div>
+      <div class="tip-body">Room at 68–72°F (20–22°C). Blackout dark. Remove toys or mobiles from view. Swaddle arms snugly — the startle reflex frequently wakes babies at this age.</div>
+    </div>
+    <div class="tip-card">
+      <span class="tip-tag tag-now">Calming words</span>
+      <div class="tip-title">What to softly say</div>
+      <div class="tip-body">"Shhh… you're safe… I've got you… shhh… all is well…" — repeat slowly in a low, monotone voice. Your calm voice signals safety to baby's nervous system and helps regulate them.</div>
+    </div>
+    <div class="tip-card">
+      <span class="tip-tag tag-warn">Call your doctor if…</span>
+      <div class="tip-title">Warning signs</div>
+      <div class="tip-body">Crying lasts 3+ hours, baby has fever, unusually high-pitched cry, refuses to eat, consistently arches back, or crying started suddenly from sleep. Always trust your instincts.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab switching ──
+function showTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Audio engine ──
+let ctx = null, masterGain = null, activeNodes = [], activeSound = null;
+
+function getCtx() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.6;
+    masterGain.connect(ctx.destination);
+  }
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+
+function stopAll() {
+  activeNodes.forEach(n => { try { n.stop(); } catch(e){} });
+  activeNodes = [];
+  document.querySelectorAll('.sound-card').forEach(c => c.classList.remove('playing'));
+  document.querySelectorAll('.sound-badge').forEach(b => b.style.display = 'none');
+  activeSound = null;
+}
+
+function setVolume(v) {
+  document.getElementById('vol-val').textContent = v + '%';
+  if (masterGain) masterGain.gain.value = v / 100;
+}
+
+function makeNoiseBuf(c, dur) {
+  const sz = c.sampleRate * dur;
+  const buf = c.createBuffer(1, sz, c.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < sz; i++) d[i] = Math.random() * 2 - 1;
+  return buf;
+}
+
+function noiseSource(c, buf) {
+  const s = c.createBufferSource();
+  s.buffer = buf; s.loop = true; return s;
+}
+
+function playSound(type) {
+  if (activeSound === type) { stopAll(); return; }
+  stopAll();
+  activeSound = type;
+  const c = getCtx();
+  const g = masterGain;
+  const nodes = [];
+  const buf = makeNoiseBuf(c, 3);
+
+  if (type === 'whitenoise') {
+    const s = noiseSource(c, buf);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 3500;
+    s.connect(f); f.connect(g); s.start(); nodes.push(s);
+  } else if (type === 'shush') {
+    const s = noiseSource(c, buf);
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1200; f.Q.value = 0.9;
+    const lfo = c.createOscillator(); lfo.frequency.value = 1.3;
+    const lg = c.createGain(); lg.gain.value = 0.45;
+    const amp = c.createGain(); amp.gain.value = 0.55;
+    lfo.connect(lg); lg.connect(amp.gain);
+    s.connect(f); f.connect(amp); amp.connect(g);
+    s.start(); lfo.start(); nodes.push(s, lfo);
+  } else if (type === 'heartbeat') {
+    const s = noiseSource(c, buf);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600;
+    const ng = c.createGain(); ng.gain.value = 0.25;
+    s.connect(f); f.connect(ng); ng.connect(g); s.start(); nodes.push(s);
+    const hg = c.createGain(); hg.gain.value = 0.5; hg.connect(g);
+    let t = c.currentTime;
+    for (let i = 0; i < 120; i++) {
+      const o1 = c.createOscillator(), og1 = c.createGain();
+      o1.frequency.value = 65; o1.type = 'sine';
+      o1.connect(og1); og1.connect(hg);
+      og1.gain.setValueAtTime(0,t); og1.gain.linearRampToValueAtTime(1,t+0.05); og1.gain.linearRampToValueAtTime(0,t+0.18);
+      o1.start(t); o1.stop(t+0.22); nodes.push(o1);
+      const o2 = c.createOscillator(), og2 = c.createGain();
+      o2.frequency.value = 52; o2.type = 'sine';
+      o2.connect(og2); og2.connect(hg);
+      og2.gain.setValueAtTime(0,t+0.22); og2.gain.linearRampToValueAtTime(0.7,t+0.27); og2.gain.linearRampToValueAtTime(0,t+0.4);
+      o2.start(t+0.22); o2.stop(t+0.44); nodes.push(o2);
+      t += 0.87;
+    }
+  } else if (type === 'rain') {
+    const s = noiseSource(c, buf);
+    const f1 = c.createBiquadFilter(); f1.type = 'highpass'; f1.frequency.value = 700;
+    const f2 = c.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = 6000;
+    s.connect(f1); f1.connect(f2); f2.connect(g); s.start(); nodes.push(s);
+  } else if (type === 'lullaby') {
+    const scale = [261.6,293.7,329.6,349.2,392,349.2,329.6,261.6,246.9,261.6];
+    let t = c.currentTime;
+    for (let rep = 0; rep < 25; rep++) {
+      scale.forEach(freq => {
+        const o = c.createOscillator(), og = c.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        o.connect(og); og.connect(g);
+        og.gain.setValueAtTime(0,t); og.gain.linearRampToValueAtTime(0.28,t+0.08); og.gain.linearRampToValueAtTime(0.18,t+0.72); og.gain.linearRampToValueAtTime(0,t+0.88);
+        o.start(t); o.stop(t+0.9); nodes.push(o); t += 0.9;
+      });
+    }
+  } else if (type === 'womb') {
+    const s = noiseSource(c, buf);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 450;
+    const lfo = c.createOscillator(); lfo.frequency.value = 0.12;
+    const lg = c.createGain(); lg.gain.value = 180;
+    lfo.connect(lg); lg.connect(f.frequency);
+    s.connect(f); f.connect(g); s.start(); lfo.start(); nodes.push(s, lfo);
+  }
+
+  activeNodes = nodes;
+  document.getElementById('card-' + type).classList.add('playing');
+  document.getElementById('badge-' + type).style.display = 'inline-block';
+}
+
+// ── Routine ──
+const STEPS = [
+  { title: 'Dim lights & swaddle', detail: 'Wrap baby snugly with arms at sides. Dim all lights.', dur: 2 },
+  { title: 'Feed or offer pacifier', detail: 'Offer breast, bottle, or pacifier. Rule out hunger.', dur: 5 },
+  { title: 'Hold & shush', detail: 'Side or tummy hold. Shush loudly near ear matching cry volume.', dur: 5 },
+  { title: 'Jiggle + white noise', detail: 'Play white noise or womb sound. Small rapid jiggles, 1–2 inches.', dur: 5 },
+  { title: 'Slow rock & lower sound', detail: 'Transition to slow rocking. Gradually lower sound volume.', dur: 5 },
+  { title: 'Lay down drowsy', detail: 'Place baby in crib drowsy but awake. Rest hand on chest briefly.', dur: 3 },
+];
+const TOTAL_SECS = STEPS.reduce((a, s) => a + s.dur * 60, 0);
+let routineRunning = false, routineInterval = null;
+let currentStep = 0, stepRemain = 0, totalRemain = TOTAL_SECS;
+
+function fmtTime(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function renderSteps() {
+  const list = document.getElementById('steps-list');
+  list.innerHTML = '';
+  STEPS.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'step-item' + (i === currentStep ? ' active' : '') + (i < currentStep ? ' done' : '');
+    div.innerHTML = `<div class="step-num">${i+1}</div><div class="step-info"><div class="step-title">${s.title}</div><div class="step-detail">${s.detail}</div></div><div class="step-dur">${s.dur}m</div>`;
+    list.appendChild(div);
+  });
+  document.getElementById('step-label').textContent = `Step ${currentStep+1} of ${STEPS.length}`;
+}
+
+function updateTimerUI() {
+  document.getElementById('timer-display').textContent = fmtTime(stepRemain);
+  document.getElementById('total-display').textContent = fmtTime(totalRemain);
+  const pct = ((TOTAL_SECS - totalRemain) / TOTAL_SECS) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function toggleRoutine() {
+  const btn = document.getElementById('routine-btn');
+  if (routineRunning) {
+    clearInterval(routineInterval);
+    routineRunning = false;
+    btn.textContent = 'Resume';
+  } else {
+    routineRunning = true;
+    btn.textContent = 'Pause';
+    routineInterval = setInterval(() => {
+      if (totalRemain <= 0) {
+        clearInterval(routineInterval);
+        routineRunning = false;
+        btn.textContent = 'Done!';
+        document.getElementById('step-label').textContent = 'Routine complete';
+        return;
+      }
+      totalRemain--; stepRemain--;
+      if (stepRemain < 0 && currentStep < STEPS.length - 1) {
+        currentStep++;
+        stepRemain = STEPS[currentStep].dur * 60 - 1;
+        renderSteps();
+      }
+      updateTimerUI();
+    }, 1000);
+  }
+}
+
+function resetRoutine() {
+  clearInterval(routineInterval);
+  routineRunning = false;
+  currentStep = 0;
+  totalRemain = TOTAL_SECS;
+  stepRemain = STEPS[0].dur * 60;
+  document.getElementById('routine-btn').textContent = 'Start routine';
+  renderSteps();
+  updateTimerUI();
+}
+
+// ── Service Worker registration ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ── Init ──
+resetRoutine();
+</script>
+</body>
+</html>
