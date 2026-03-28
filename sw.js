@@ -1,5 +1,11 @@
-const CACHE = 'babysleep-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'babysleep-v2';  // bump version to force old cache to clear
+const ASSETS = [
+  '/babysleep/',
+  '/babysleep/index.html',
+  '/babysleep/manifest.json',
+  '/babysleep/icon-192.png',
+  '/babysleep/icon-512.png'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -15,6 +21,6 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('/index.html')))
+    caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('/babysleep/index.html')))
   );
 });
