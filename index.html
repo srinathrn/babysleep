@@ -438,7 +438,11 @@ function toggleRoutine() {
     }, 1000);
   }
 }
-
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && ctx && ctx.state === 'suspended') {
+    ctx.resume();
+  }
+});
 function resetRoutine() {
   clearInterval(routineInterval);
   routineRunning = false;
