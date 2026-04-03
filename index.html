@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -40,21 +40,21 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
-  
+
   /* Header */
   .header { background: var(--green); padding: 52px 20px 20px; color: white; }
   .header h1 { font-size: 22px; font-weight: 600; }
   .header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
-  
+
   /* Tabs */
   .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
   .tab { flex: 1; padding: 13px 4px; font-size: 13px; font-weight: 500; color: var(--text3); border: none; background: none; cursor: pointer; border-bottom: 2.5px solid transparent; transition: all 0.15s; }
   .tab.active { color: var(--green); border-bottom-color: var(--green); }
-  
+
   /* Sections */
   .section { display: none; padding: 16px; }
   .section.active { display: block; }
-  
+
   /* Sound grid */
   .sound-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
   .sound-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
@@ -64,7 +64,7 @@
   .sound-name { font-size: 14px; font-weight: 600; color: var(--text); }
   .sound-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
   .sound-badge { display: inline-block; font-size: 10px; font-weight: 600; color: var(--green-text); background: var(--green-light); padding: 2px 7px; border-radius: 20px; margin-top: 5px; }
-  
+
   /* Volume */
   .vol-section { background: var(--surface); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
   .vol-label { font-size: 13px; color: var(--text2); margin-bottom: 8px; display: flex; justify-content: space-between; }
@@ -80,7 +80,7 @@
   .timer-label { font-size: 12px; color: var(--text3); }
   .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 1s linear; }
-  
+
   /* Steps */
   .steps-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
   .step-item { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px; display: flex; gap: 10px; align-items: flex-start; transition: all 0.2s; }
@@ -92,7 +92,7 @@
   .step-title { font-size: 14px; font-weight: 600; color: var(--text); }
   .step-detail { font-size: 12px; color: var(--text2); margin-top: 3px; line-height: 1.5; }
   .step-dur { font-size: 11px; color: var(--text3); flex-shrink: 0; padding-top: 2px; }
-  
+
   /* Buttons */
   .btn-row { display: flex; gap: 8px; }
   .btn-green { flex: 2; padding: 14px; border-radius: var(--radius-sm); border: none; background: var(--green); color: white; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
@@ -314,6 +314,7 @@ function playSound(type) {
     const s = noiseSource(c, buf);
     const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 3500;
     s.connect(f); f.connect(g); s.start(); nodes.push(s);
+
   } else if (type === 'shush') {
     const s = noiseSource(c, buf);
     const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1200; f.Q.value = 0.9;
@@ -323,43 +324,59 @@ function playSound(type) {
     lfo.connect(lg); lg.connect(amp.gain);
     s.connect(f); f.connect(amp); amp.connect(g);
     s.start(); lfo.start(); nodes.push(s, lfo);
+
   } else if (type === 'heartbeat') {
+    // FIX: replaced fixed for-loop (stopped after ~104s) with a rolling scheduler
     const s = noiseSource(c, buf);
     const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600;
     const ng = c.createGain(); ng.gain.value = 0.25;
     s.connect(f); f.connect(ng); ng.connect(g); s.start(); nodes.push(s);
     const hg = c.createGain(); hg.gain.value = 0.5; hg.connect(g);
-    let t = c.currentTime;
-    for (let i = 0; i < 120; i++) {
-      const o1 = c.createOscillator(), og1 = c.createGain();
-      o1.frequency.value = 65; o1.type = 'sine';
-      o1.connect(og1); og1.connect(hg);
-      og1.gain.setValueAtTime(0,t); og1.gain.linearRampToValueAtTime(1,t+0.05); og1.gain.linearRampToValueAtTime(0,t+0.18);
-      o1.start(t); o1.stop(t+0.22); nodes.push(o1);
-      const o2 = c.createOscillator(), og2 = c.createGain();
-      o2.frequency.value = 52; o2.type = 'sine';
-      o2.connect(og2); og2.connect(hg);
-      og2.gain.setValueAtTime(0,t+0.22); og2.gain.linearRampToValueAtTime(0.7,t+0.27); og2.gain.linearRampToValueAtTime(0,t+0.4);
-      o2.start(t+0.22); o2.stop(t+0.44); nodes.push(o2);
-      t += 0.87;
-    }
+    let nextBeat = c.currentTime;
+    (function scheduleBeats() {
+      while (nextBeat < c.currentTime + 4.0) {
+        const t = nextBeat;
+        const o1 = c.createOscillator(), og1 = c.createGain();
+        o1.frequency.value = 65; o1.type = 'sine';
+        o1.connect(og1); og1.connect(hg);
+        og1.gain.setValueAtTime(0,t); og1.gain.linearRampToValueAtTime(1,t+0.05); og1.gain.linearRampToValueAtTime(0,t+0.18);
+        o1.start(t); o1.stop(t+0.22); nodes.push(o1);
+        const o2 = c.createOscillator(), og2 = c.createGain();
+        o2.frequency.value = 52; o2.type = 'sine';
+        o2.connect(og2); og2.connect(hg);
+        og2.gain.setValueAtTime(0,t+0.22); og2.gain.linearRampToValueAtTime(0.7,t+0.27); og2.gain.linearRampToValueAtTime(0,t+0.4);
+        o2.start(t+0.22); o2.stop(t+0.44); nodes.push(o2);
+        nextBeat += 0.87;
+      }
+      if (activeSound === 'heartbeat') setTimeout(scheduleBeats, 2000);
+    })();
+
   } else if (type === 'rain') {
     const s = noiseSource(c, buf);
     const f1 = c.createBiquadFilter(); f1.type = 'highpass'; f1.frequency.value = 700;
     const f2 = c.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = 6000;
     s.connect(f1); f1.connect(f2); f2.connect(g); s.start(); nodes.push(s);
+
   } else if (type === 'lullaby') {
+    // FIX: replaced fixed for-loop (stopped after ~225s) with a rolling scheduler
     const scale = [261.6,293.7,329.6,349.2,392,349.2,329.6,261.6,246.9,261.6];
-    let t = c.currentTime;
-    for (let rep = 0; rep < 25; rep++) {
-      scale.forEach(freq => {
+    let nextNote = c.currentTime;
+    let noteIdx = 0;
+    (function scheduleLullaby() {
+      while (nextNote < c.currentTime + 5.0) {
+        const t = nextNote;
+        const freq = scale[noteIdx % scale.length];
         const o = c.createOscillator(), og = c.createGain();
         o.type = 'sine'; o.frequency.value = freq;
         o.connect(og); og.connect(g);
         og.gain.setValueAtTime(0,t); og.gain.linearRampToValueAtTime(0.28,t+0.08); og.gain.linearRampToValueAtTime(0.18,t+0.72); og.gain.linearRampToValueAtTime(0,t+0.88);
-        o.start(t); o.stop(t+0.9); nodes.push(o); t += 0.9;
-      });
-    }
+        o.start(t); o.stop(t+0.9); nodes.push(o);
+        nextNote += 0.9;
+        noteIdx++;
+      }
+      if (activeSound === 'lullaby') setTimeout(scheduleLullaby, 3000);
+    })();
+
   } else if (type === 'womb') {
     const s = noiseSource(c, buf);
     const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 450;
@@ -373,6 +390,13 @@ function playSound(type) {
   document.getElementById('card-' + type).classList.add('playing');
   document.getElementById('badge-' + type).style.display = 'inline-block';
 }
+
+// ── FIX: Resume AudioContext when returning from background / screen lock (iOS) ──
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && ctx && ctx.state === 'suspended') {
+    ctx.resume();
+  }
+});
 
 // ── Routine ──
 const STEPS = [
@@ -438,11 +462,7 @@ function toggleRoutine() {
     }, 1000);
   }
 }
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && ctx && ctx.state === 'suspended') {
-    ctx.resume();
-  }
-});
+
 function resetRoutine() {
   clearInterval(routineInterval);
   routineRunning = false;
