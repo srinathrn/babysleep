@@ -1,4 +1,4 @@
-const CACHE = 'babysleep-v2';  // bump version to force old cache to clear
+const CACHE = 'babysleep-v3';  // bump version to force old cache to clear
 const ASSETS = [
   '/babysleep/',
   '/babysleep/index.html',
